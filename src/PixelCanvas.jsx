@@ -18,7 +18,9 @@ const invertHexColor = (hex) => {
     r /= 0xff;
     g /= 0xff;
     b /= 0xff;
-    return (r << (6 * 4)) | (g << (4 * 4)) | (b << (2 * 4)) | 0x000000ff;
+    return (
+        ((r << (6 * 4)) | (g << (4 * 4)) | (b << (2 * 4)) | 0x000000ff) >>> 0
+    );
 };
 
 const paintCanvas = (canvas, ctx, imageState, mouse) => {
@@ -60,6 +62,10 @@ const paintCanvas = (canvas, ctx, imageState, mouse) => {
     let cursorCol = Math.floor(mouse.x / stride);
     ctx.strokeStyle = hexToColor(
         invertHexColor(imageState[cursorRow][cursorCol])
+    );
+    console.log(
+        "INverting to:",
+        invertHexColor(imageState[cursorRow][cursorCol]).toString(16)
     );
     ctx.lineWidth = 2;
     ctx.strokeRect(cursorCol * stride, cursorRow * stride, stride, stride);
