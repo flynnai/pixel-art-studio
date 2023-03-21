@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 import styles from "./PixelCanvas.module.scss";
+import { hexToColor } from "./util";
 
-const hexToColor = (hex) => "#" + hex.toString(16).padStart(8, "0");
 // const hexToColor = (hex) => "rgba"+ hex.toString(16).padStart(8, "0");
 
 // take inverse of color, weighted-average with black according to alpha
@@ -72,7 +72,7 @@ const paintCanvas = (canvas, ctx, imageState, mouse) => {
 };
 
 // assumes `imageState` is a 2D, rectangular array of hex digits, at least size 1 in width and height
-function PixelCanvas({ imageState, setImageState }) {
+function PixelCanvas({ imageState, setImageState, selectedColor }) {
     const canvasRef = useRef(null);
     const mouseRef = useRef({ x: 0, y: 0, down: false });
 
@@ -91,7 +91,9 @@ function PixelCanvas({ imageState, setImageState }) {
                         rowNum !== cursorRow
                             ? pixelRow
                             : pixelRow.map((pixelCol, colNum) =>
-                                  colNum !== cursorCol ? pixelCol : 0x000000ff
+                                  colNum !== cursorCol
+                                      ? pixelCol
+                                      : selectedColor
                               )
                     )
                 );
@@ -121,7 +123,7 @@ function PixelCanvas({ imageState, setImageState }) {
                 window.removeEventListener("mouseup", handleMouseUp);
             };
         }
-    }, [canvasRef.current, imageState]);
+    }, [canvasRef.current, imageState, selectedColor]);
 
     useEffect(() => {
         // continuously repaint canvas
@@ -142,7 +144,32 @@ function PixelCanvas({ imageState, setImageState }) {
         }
     }, [imageState, canvasRef.current]);
 
-    return <canvas ref={canvasRef} width="640" height="640"></canvas>;
+    function downloadThatShit() {
+        const tempCanvas = document.createElement("CANVAS");
+        tempCanvas.width = imageState[0].length;
+        tempCanvas.height = imageState.length;
+        const ctx = tempCanvas.getContext("2d");
+        for (let row = 0; row < tempCanvas.height; row++) {
+            for (let col = 0; col < tempCanvas.width; col++) {
+                ctx.fillStyle = hexToColor(imageState[row][col]);
+                ctx.fillRect(col, row, 1, 1);
+            }
+        }
+
+        // create link to data URL, click it
+        let dataURL = tempCanvas.toDataURL("image/png");
+        let a = document.createElement("a");
+        a.href = dataURL;
+        a.download = "my-image.png";
+        a.click();
+    }
+
+    return (
+        <>
+            <canvas ref={canvasRef} width="640" height="640"></canvas>
+            <button onClick={downloadThatShit}>download</button>
+        </>
+    );
 }
 
 export default PixelCanvas;
