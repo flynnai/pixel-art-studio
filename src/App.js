@@ -52,7 +52,10 @@ function App() {
                 </Grid>
             </Grid>
             <Grid item xs={8}>
-                <PixelCanvas imageState={imageState} />
+                <PixelCanvas
+                    imageState={imageState}
+                    setImageState={setImageState}
+                />
             </Grid>
             <Grid item xs={2}>
                 menu
