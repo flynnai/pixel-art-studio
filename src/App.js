@@ -10,7 +10,7 @@ function App() {
     const [imageState, setImageState] = useState(
         new Array(IMAGE_HEIGHT)
             .fill(0)
-            .map((_) => new Array(IMAGE_WIDTH).fill(0x00ff00ff))
+            .map((_) => new Array(IMAGE_WIDTH).fill(0x00ff0000))
     );
 
     return (
