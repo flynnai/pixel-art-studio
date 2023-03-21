@@ -71,22 +71,51 @@ function PixelCanvas({ imageState, setImageState }) {
     const mouseRef = useRef({ x: 0, y: 0, down: false });
 
     useEffect(() => {
+        const imageWidth = imageState[0].length;
         // capture mouse movements, store in ref to avoid rerender
         const mouse = mouseRef.current;
         const canvas = canvasRef.current;
         if (canvas) {
+            const placeColor = () => {
+                let stride = canvas.width / imageWidth;
+                let cursorRow = Math.floor(mouse.y / stride);
+                let cursorCol = Math.floor(mouse.x / stride);
+                setImageState(
+                    imageState.map((pixelRow, rowNum) =>
+                        rowNum !== cursorRow
+                            ? pixelRow
+                            : pixelRow.map((pixelCol, colNum) =>
+                                  colNum !== cursorCol ? pixelCol : 0x000000ff
+                              )
+                    )
+                );
+            };
             const handleMouseMove = (e) => {
                 const bounding = canvas.getBoundingClientRect();
                 mouse.x = e.clientX - bounding.left;
                 mouse.y = e.clientY - bounding.top;
+                if (mouse.down) {
+                    placeColor();
+                }
+            };
+            const handleMouseDown = (e) => {
+                placeColor();
+                mouse.down = true;
+            };
+            const handleMouseUp = () => {
+                mouse.down = false;
             };
 
             window.addEventListener("mousemove", handleMouseMove);
+            canvas.addEventListener("mousedown", handleMouseDown);
+            window.addEventListener("mouseup", handleMouseUp);
             return () => {
                 window.removeEventListener("mousemove", handleMouseMove);
+                canvas.removeEventListener("mousedown", handleMouseDown);
+                window.removeEventListener("mouseup", handleMouseUp);
             };
         }
-    }, [canvasRef.current]);
+    }, [canvasRef.current, imageState]);
 
     useEffect(() => {
         // continuously repaint canvas
