@@ -23,6 +23,10 @@ const invertHexColor = (hex) => {
     );
 };
 
+const checkTileBounds = (row, col, width, height) => {
+    return !(col < 0 || col >= width || row < 0 || row >= height);
+};
+
 const paintCanvas = (canvas, ctx, imageState, mouse) => {
     const imageHeight = imageState.length;
     const imageWidth = imageState[0].length;
@@ -60,13 +64,14 @@ const paintCanvas = (canvas, ctx, imageState, mouse) => {
     // color in cursor
     let cursorRow = Math.floor(mouse.y / stride);
     let cursorCol = Math.floor(mouse.x / stride);
-    ctx.strokeStyle = hexToColor(
-        invertHexColor(imageState[cursorRow][cursorCol])
-    );
-    console.log(
-        "INverting to:",
-        invertHexColor(imageState[cursorRow][cursorCol]).toString(16)
-    );
+    if (checkTileBounds(cursorRow, cursorCol, imageWidth, imageHeight)) {
+        ctx.strokeStyle = hexToColor(
+            invertHexColor(imageState[cursorRow][cursorCol])
+        );
+    } else {
+        ctx.strokeStyle = "black";
+    }
+
     ctx.lineWidth = 2;
     ctx.strokeRect(cursorCol * stride, cursorRow * stride, stride, stride);
 };
@@ -78,6 +83,7 @@ function PixelCanvas({ imageState, setImageState, selectedColor }) {
 
     useEffect(() => {
         const imageWidth = imageState[0].length;
+        const imageHeight = imageState.length;
         // capture mouse movements, store in ref to avoid rerender
         const mouse = mouseRef.current;
         const canvas = canvasRef.current;
@@ -86,6 +92,17 @@ function PixelCanvas({ imageState, setImageState, selectedColor }) {
                 let stride = canvas.width / imageWidth;
                 let cursorRow = Math.floor(mouse.y / stride);
                 let cursorCol = Math.floor(mouse.x / stride);
+                console.log(imageWidth, imageHeight);
+                if (
+                    !checkTileBounds(
+                        cursorRow,
+                        cursorCol,
+                        imageWidth,
+                        imageHeight
+                    )
+                ) {
+                    return;
+                }
                 setImageState(
                     imageState.map((pixelRow, rowNum) =>
                         rowNum !== cursorRow
@@ -144,7 +161,8 @@ function PixelCanvas({ imageState, setImageState, selectedColor }) {
         }
     }, [imageState, canvasRef.current]);
 
-    function downloadThatShit() {
+    function downloadPNG() {
+        // create small canvas, draw all pixels
         const tempCanvas = document.createElement("CANVAS");
         tempCanvas.width = imageState[0].length;
         tempCanvas.height = imageState.length;
@@ -167,7 +185,7 @@ function PixelCanvas({ imageState, setImageState, selectedColor }) {
     return (
         <>
             <canvas ref={canvasRef} width="640" height="640"></canvas>
-            <button onClick={downloadThatShit}>download</button>
+            <button onClick={downloadPNG}>download</button>
         </>
     );
 }
