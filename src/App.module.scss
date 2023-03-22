@@ -1,18 +1,36 @@
+@use "base";
+
 .main {
-    background-color: white;
+    background-color: base.$light-secondary;
 
     .leftSide {
         .toolbar {
-            min-width: 100px;
+            background-color: base.$light-primary;
+            padding: 0.5rem;
+            border-radius: 15px;
 
             .tool {
-                width: 100%;
+                min-width: 4rem;
                 aspect-ratio: 1/1;
-                background-color: #ccc;
-                // test styles
-                border-radius: 15px;
-                &.selected {
-                    background-color: #aaa;
+                padding: 0.2rem;
+
+                .clickable {
+                    background-color: transparent;
+                    border-radius: 15px;
+
+                    transition: background-color 0.3s;
+
+                    &:hover {
+                        background-color: base.$light-primary-darker;
+                    }
+
+                    &.selected {
+                        background-color: base.$light-secondary;
+                    }
+
+                    &:active {
+                        background-color: base.$light-secondary-darker;
+                    }
                 }
             }
         }

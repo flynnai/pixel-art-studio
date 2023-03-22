@@ -190,7 +190,7 @@ const PixelCanvas = React.memo(
                     height="640"
                     id={styles.previewCanvas}
                 ></canvas>
-                <button onClick={downloadPNG}>download</button>
+                {/* <button onClick={downloadPNG}>download</button> */}
             </div>
         );
     }

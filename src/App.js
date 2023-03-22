@@ -1,3 +1,4 @@
+import { Brush, ShowChart } from "@mui/icons-material";
 import { Grid } from "@mui/material";
 import { useState } from "react";
 import styles from "./App.module.scss";
@@ -13,8 +14,10 @@ const initialPalette = [
 ];
 
 const tools = {
-    brush: {},
-    line: {},
+    brush: {
+        icon: <Brush fontSize="large" />,
+    },
+    line: { icon: <ShowChart fontSize="large" /> },
 };
 
 function App() {
@@ -38,43 +41,56 @@ function App() {
             className={styles.main}
             flexDirection="row"
             wrap="nowrap"
+            alignItems="center"
         >
-            <Grid item xs={2} className={styles.leftSide}>
-                <Grid container direction="column" alignItems="center">
-                    <Grid item xs={12} className={styles.toolbar}>
+            <Grid item xs={3} className={styles.leftSide}>
+                <Grid container justifyContent="flex-end">
+                    <Grid item xs="auto" className={styles.toolbar}>
                         <Grid container direction="row">
                             {Object.entries(tools).map(([key, value]) => (
                                 <Grid
                                     item
                                     xs={6}
                                     key={key}
-                                    className={joinClasses(
-                                        styles.tool,
-                                        selectedTool.name === key &&
-                                            styles.selected
-                                    )}
+                                    className={styles.tool}
                                     onClick={() =>
                                         setSelectedTool({
                                             name: key,
                                         })
                                     }
                                 >
-                                    {key}
+                                    <Grid
+                                        container
+                                        justifyContent="center"
+                                        alignItems="center"
+                                        style={{ height: "100%" }}
+                                        className={joinClasses(
+                                            styles.clickable,
+                                            selectedTool.name === key &&
+                                                styles.selected
+                                        )}
+                                    >
+                                        <Grid item>{value.icon}</Grid>
+                                    </Grid>
                                 </Grid>
                             ))}
                         </Grid>
                     </Grid>
                 </Grid>
             </Grid>
-            <Grid item xs={8}>
-                <PixelCanvas
-                    imageState={imageState}
-                    setImageState={setImageState}
-                    selectedColor={selectedColor}
-                    selectedTool={selectedTool}
-                />
+            <Grid item xs={6}>
+                <Grid container justifyContent="center" alignItems="center">
+                    <Grid item xs="auto">
+                        <PixelCanvas
+                            imageState={imageState}
+                            setImageState={setImageState}
+                            selectedColor={selectedColor}
+                            selectedTool={selectedTool}
+                        />
+                    </Grid>
+                </Grid>
             </Grid>
-            <Grid item xs={2}>
+            <Grid item xs={3}>
                 <Grid container direction="column">
                     <Grid item xs={8}>
                         asdf
