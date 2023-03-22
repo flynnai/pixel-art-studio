@@ -27,6 +27,75 @@ const checkTileBounds = (row, col, width, height) => {
     return !(col < 0 || col >= width || row < 0 || row >= height);
 };
 
+const drawLine = (currImageState, prevX, prevY, mouseX, mouseY, stride) => {
+    const imageStateCopy = currImageState.map((row) => [...row]);
+    const imageWidth = imageStateCopy[0].length;
+    const imageHeight = imageStateCopy.length;
+
+    // normalize prev coords, mouse coords to one tile
+    prevX = (Math.floor(prevX / stride) + 0.5) * stride;
+    prevY = (Math.floor(prevY / stride) + 0.5) * stride;
+
+    mouseX = (Math.floor(mouseX / stride) + 0.5) * stride;
+    mouseY = (Math.floor(mouseY / stride) + 0.5) * stride;
+
+    // set up start, end coords
+    let end = {
+        row: Math.floor(mouseY / stride),
+        col: Math.floor(mouseX / stride),
+    };
+    let start = {
+        row: Math.floor(prevY / stride),
+        col: Math.floor(prevX / stride),
+    };
+    let curr = {
+        row: start.row,
+        col: start.col,
+    };
+
+    const theta = Math.atan2(mouseY - prevY, mouseX - prevX);
+    let direction, increment, slope;
+    if (
+        Math.abs(theta) <= Math.PI / 4 ||
+        theta >= (Math.PI * 3) / 4 ||
+        theta <= (Math.PI * -3) / 4
+    ) {
+        direction = "horizontal";
+        slope = Math.tan(theta);
+        increment = Math.abs(theta) <= Math.PI / 4 ? 1 : -1;
+    } else {
+        direction = "vertical";
+        slope = Math.tan(theta + Math.PI / 2);
+        increment = theta > 0 ? 1 : -1;
+    }
+
+    let i = 0;
+    while (true) {
+        imageStateCopy[curr.row][curr.col] = 0x000000ff;
+
+        if (curr.row === end.row && curr.col === end.col) {
+            break;
+        }
+
+        if (direction === "horizontal") {
+            curr.row = Math.floor(prevY / stride + i * slope);
+            curr.col = start.col + i;
+        } else {
+            // direction is `vertical`
+            curr.row = start.row + i;
+            curr.col = Math.floor(prevX / stride - i * slope);
+        }
+
+        if (!checkTileBounds(curr.row, curr.col, imageWidth, imageHeight)) {
+            break;
+        }
+
+        i += increment;
+    }
+
+    return imageStateCopy;
+};
+
 const paintCanvas = (canvas, ctx, imageState, mouse) => {
     const imageHeight = imageState.length;
     const imageWidth = imageState[0].length;
@@ -74,6 +143,23 @@ const paintCanvas = (canvas, ctx, imageState, mouse) => {
 
     ctx.lineWidth = 2;
     ctx.strokeRect(cursorCol * stride, cursorRow * stride, stride, stride);
+
+    const newImageState = drawLine(
+        imageState,
+        canvas.width / 2,
+        canvas.height / 2,
+        mouse.x,
+        mouse.y,
+        stride
+    );
+
+    // color in our line
+    for (let row = 0; row < imageHeight; row++) {
+        for (let col = 0; col < imageWidth; col++) {
+            ctx.fillStyle = hexToColor(newImageState[row][col]);
+            ctx.fillRect(col * stride, row * stride, stride, stride);
+        }
+    }
 };
 
 // assumes `imageState` is a 2D, rectangular array of hex digits, at least size 1 in width and height
