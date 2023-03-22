@@ -1,9 +1,9 @@
-import { Brush, ShowChart } from "@mui/icons-material";
-import { Grid } from "@mui/material";
+import { Brush, Download, ShowChart } from "@mui/icons-material";
+import { Grid, TextField } from "@mui/material";
 import { useState } from "react";
 import styles from "./App.module.scss";
 import PixelCanvas from "./PixelCanvas";
-import { hexToColor, joinClasses } from "./util";
+import { downloadPNG, hexToColor, joinClasses } from "./util";
 
 const IMAGE_WIDTH = 16;
 const IMAGE_HEIGHT = 16;
@@ -28,11 +28,12 @@ function App() {
     );
 
     const [palette, setPalette] = useState(initialPalette);
-    const [selectedColor, setSelectedColor] = useState(0x000000ff);
+    const [selectedColorIndex, setSelectedColorIndex] = useState(0);
     const [selectedTool, setSelectedTool] = useState({
         name: "brush",
         size: 1,
     });
+    const [downloadFilename, setDownloadFilename] = useState("your-creation");
 
     return (
         <Grid
@@ -84,18 +85,78 @@ function App() {
                         <PixelCanvas
                             imageState={imageState}
                             setImageState={setImageState}
-                            selectedColor={selectedColor}
+                            selectedColor={palette[selectedColorIndex]}
                             selectedTool={selectedTool}
                         />
                     </Grid>
                 </Grid>
             </Grid>
-            <Grid item xs={3}>
-                <Grid container direction="column" alignItems="center">
-                    <Grid item xs={6}>
-                        asdf
+            <Grid item xs={3} className={styles.rightSide}>
+                <Grid container direction="column" alignItems="flex-start">
+                    <Grid item xs={12}>
+                        <Grid
+                            container
+                            direction="column"
+                            className={styles.topPanel}
+                        >
+                            <Grid item xs={12}>
+                                <Grid
+                                    container
+                                    direction="row"
+                                    wrap="nowrap"
+                                    justifyContent="space-between"
+                                    alignItems="center"
+                                >
+                                    <Grid item xs>
+                                        <Grid
+                                            container
+                                            wrap="nowrap"
+                                            alignItems="center"
+                                        >
+                                            <input
+                                                type="text"
+                                                value={downloadFilename}
+                                                onChange={(e) =>
+                                                    setDownloadFilename(
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className={styles.filenameInput}
+                                            />
+                                            .png
+                                        </Grid>
+                                    </Grid>
+                                    <Grid
+                                        item
+                                        xs="auto"
+                                        className={styles.downloadButton}
+                                        onClick={() =>
+                                            downloadPNG(
+                                                imageState,
+                                                downloadFilename + ".png"
+                                            )
+                                        }
+                                    >
+                                        <Grid container>
+                                            <strong>Download</strong>
+                                            &nbsp;
+                                            <Download />
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+                                {/* <h2>Edit Image Dimensions</h2>
+                                <Grid container direction="row" wrap="nowrap">
+                                    <Grid item xs={6}>
+                                        Dimensions:
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        16 x 16
+                                    </Grid>
+                                </Grid> */}
+                            </Grid>
+                        </Grid>
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid item xs={12}>
                         <Grid
                             container
                             direction="row"
@@ -108,10 +169,10 @@ function App() {
                                     key={index}
                                     className={joinClasses(
                                         styles.paletteItem,
-                                        color === selectedColor &&
+                                        index === selectedColorIndex &&
                                             styles.selected
                                     )}
-                                    onClick={() => setSelectedColor(color)}
+                                    onClick={() => setSelectedColorIndex(index)}
                                 >
                                     <div
                                         style={{

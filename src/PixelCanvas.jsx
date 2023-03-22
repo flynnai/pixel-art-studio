@@ -160,27 +160,6 @@ const PixelCanvas = React.memo(
             }
         }, [previewState, paintPreviewCanvas]);
 
-        function downloadPNG() {
-            // create small canvas, draw all pixels
-            const tempCanvas = document.createElement("CANVAS");
-            tempCanvas.width = imageState[0].length;
-            tempCanvas.height = imageState.length;
-            const ctx = tempCanvas.getContext("2d");
-            for (let row = 0; row < tempCanvas.height; row++) {
-                for (let col = 0; col < tempCanvas.width; col++) {
-                    ctx.fillStyle = hexToColor(imageState[row][col]);
-                    ctx.fillRect(col, row, 1, 1);
-                }
-            }
-
-            // create link to data URL, click it
-            let dataURL = tempCanvas.toDataURL("image/png");
-            let a = document.createElement("a");
-            a.href = dataURL;
-            a.download = "my-image.png";
-            a.click();
-        }
-
         return (
             <div className={styles.main}>
                 <canvas ref={canvasRef} width="640" height="640"></canvas>
@@ -190,7 +169,6 @@ const PixelCanvas = React.memo(
                     height="640"
                     id={styles.previewCanvas}
                 ></canvas>
-                {/* <button onClick={downloadPNG}>download</button> */}
             </div>
         );
     }
