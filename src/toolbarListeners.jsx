@@ -77,50 +77,47 @@ export const runListeners = (
     if (selectedTool.name === "line") {
         let lineStart = null,
             linePixels = null;
+
+        const updatePreviewedLine = () => {
+            // get line pixels
+            linePixels = drawLine(
+                imageWidth,
+                imageHeight,
+                Math.floor(lineStart.y / stride),
+                Math.floor(lineStart.x / stride),
+                Math.floor(mouse.y / stride),
+                Math.floor(mouse.x / stride),
+                selectedColor
+            );
+
+            // set preview state so it displays
+            setPreviewState((curr) => ({
+                ...curr,
+                previewPixels: linePixels,
+            }));
+        };
+
         handleMouseMove = (e) => {
             console.log("Mouse linestart", lineStart);
             baseMouseMove(e);
             if (lineStart !== null) {
-                // update previewed line
-                linePixels = drawLine(
-                    imageWidth,
-                    imageHeight,
-                    Math.floor(lineStart.y / stride),
-                    Math.floor(lineStart.x / stride),
-                    Math.floor(mouse.y / stride),
-                    Math.floor(mouse.x / stride),
-                    selectedColor
-                );
-
-                setPreviewState((curr) => ({
-                    ...curr,
-                    previewPixels: linePixels,
-                }));
+                updatePreviewedLine();
             }
         };
         handleMouseDown = (e) => {
             baseMouseDown(e);
             if (lineStart === null) {
                 lineStart = { x: mouse.x, y: mouse.y };
-                linePixels = drawLine(
-                    imageWidth,
-                    imageHeight,
-                    Math.floor(lineStart.y / stride),
-                    Math.floor(lineStart.x / stride),
-                    Math.floor(mouse.y / stride),
-                    Math.floor(mouse.x / stride),
-                    selectedColor
-                );
-            }
-        };
-        handleMouseUp = (e) => {
-            baseMouseUp(e);
-            if (lineStart !== null) {
+                updatePreviewedLine();
+            } else if (lineStart !== null) {
                 // place the line
                 lineStart = null;
                 setImageState(maybeUpdateImageState(linePixels));
                 setPreviewState((curr) => ({ ...curr, previewPixels: [] }));
             }
+        };
+        handleMouseUp = (e) => {
+            baseMouseUp(e);
         };
 
         addCoreListeners();
