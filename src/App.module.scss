@@ -1,8 +1,25 @@
 .main {
     background-color: white;
-}
 
-.paletteItem {
-    width: 100%;
-    aspect-ratio: 1/1;
+    .leftSide {
+        .toolbar {
+            min-width: 100px;
+
+            .tool {
+                width: 100%;
+                aspect-ratio: 1/1;
+                background-color: #ccc;
+                // test styles
+                border-radius: 15px;
+                &.selected {
+                    background-color: #aaa;
+                }
+            }
+        }
+    }
+
+    .paletteItem {
+        width: 100%;
+        aspect-ratio: 1/1;
+    }
 }

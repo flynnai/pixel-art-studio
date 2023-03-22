@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import styles from "./PixelCanvas.module.scss";
 import { hexToColor } from "./util";
 
@@ -97,7 +97,7 @@ const drawLine = (imageState, prevX, prevY, mouseX, mouseY, stride) => {
     return outputLine;
 };
 
-const paintCanvas = (canvas, ctx, imageState, mouse) => {
+const paintCanvas = (canvas, ctx, imageState, previewState, mouse) => {
     const imageHeight = imageState.length;
     const imageWidth = imageState[0].length;
 
@@ -131,6 +131,14 @@ const paintCanvas = (canvas, ctx, imageState, mouse) => {
         }
     }
 
+    // display previewed line or shape
+    if (previewState.coordPairs) {
+        for (const { row, col } of previewState.coordPairs) {
+            ctx.fillStyle = hexToColor(previewState.color);
+            ctx.fillRect(col * stride, row * stride, stride, stride);
+        }
+    }
+
     // color in cursor
     let cursorRow = Math.floor(mouse.y / stride);
     let cursorCol = Math.floor(mouse.x / stride);
@@ -144,26 +152,32 @@ const paintCanvas = (canvas, ctx, imageState, mouse) => {
 
     ctx.lineWidth = 2;
     ctx.strokeRect(cursorCol * stride, cursorRow * stride, stride, stride);
-
-    const lineCoords = drawLine(
-        imageState,
-        canvas.width / 2,
-        canvas.height / 2,
-        mouse.x,
-        mouse.y,
-        stride
-    );
-
-    for (const { row, col } of lineCoords) {
-        ctx.fillStyle = hexToColor(0x00ff00ff);
-        ctx.fillRect(col * stride, row * stride, stride, stride);
-    }
 };
 
+// const lineCoords = drawLine(
+//     imageState,
+//     canvas.width / 2,
+//     canvas.height / 2,
+//     mouse.x,
+//     mouse.y,
+//     stride
+// );
+
 // assumes `imageState` is a 2D, rectangular array of hex digits, at least size 1 in width and height
-function PixelCanvas({ imageState, setImageState, selectedColor }) {
+function PixelCanvas({
+    imageState,
+    setImageState,
+    selectedColor,
+    selectedTool,
+}) {
     const canvasRef = useRef(null);
     const mouseRef = useRef({ x: 0, y: 0, down: false });
+
+    // color and array of coord pairs
+    const [previewState, setPreviewState] = useState({
+        color: null,
+        coordPairs: null,
+    });
 
     useEffect(() => {
         const imageWidth = imageState[0].length;
@@ -172,59 +186,82 @@ function PixelCanvas({ imageState, setImageState, selectedColor }) {
         const mouse = mouseRef.current;
         const canvas = canvasRef.current;
         if (canvas) {
-            const placeColor = () => {
-                let stride = canvas.width / imageWidth;
-                let cursorRow = Math.floor(mouse.y / stride);
-                let cursorCol = Math.floor(mouse.x / stride);
-                console.log(imageWidth, imageHeight);
-                if (
-                    !checkTileBounds(
-                        cursorRow,
-                        cursorCol,
-                        imageWidth,
-                        imageHeight
-                    )
-                ) {
-                    return;
-                }
-                setImageState(
-                    imageState.map((pixelRow, rowNum) =>
-                        rowNum !== cursorRow
-                            ? pixelRow
-                            : pixelRow.map((pixelCol, colNum) =>
-                                  colNum !== cursorCol
-                                      ? pixelCol
-                                      : selectedColor
-                              )
-                    )
-                );
-            };
-            const handleMouseMove = (e) => {
+            const baseMouseMove = (e) => {
                 const bounding = canvas.getBoundingClientRect();
                 mouse.x = e.clientX - bounding.left;
                 mouse.y = e.clientY - bounding.top;
-                if (mouse.down) {
-                    placeColor();
-                }
             };
-            const handleMouseDown = (e) => {
-                placeColor();
+            const baseMouseDown = (e) => {
                 mouse.down = true;
             };
-            const handleMouseUp = () => {
+            const baseMouseUp = () => {
                 mouse.down = false;
             };
 
-            window.addEventListener("mousemove", handleMouseMove);
-            canvas.addEventListener("mousedown", handleMouseDown);
-            window.addEventListener("mouseup", handleMouseUp);
-            return () => {
+            let handleMouseMove, handleMouseDown, handleMouseUp;
+
+            const addCoreListeners = () => {
+                window.addEventListener("mousemove", handleMouseMove);
+                canvas.addEventListener("mousedown", handleMouseDown);
+                window.addEventListener("mouseup", handleMouseUp);
+            };
+            const removeCoreListeners = () => {
                 window.removeEventListener("mousemove", handleMouseMove);
                 canvas.removeEventListener("mousedown", handleMouseDown);
                 window.removeEventListener("mouseup", handleMouseUp);
             };
+
+            if (selectedTool.name === "line") {
+            } else if (selectedTool.name === "brush") {
+                const placeColor = () => {
+                    let stride = canvas.width / imageWidth;
+                    let cursorRow = Math.floor(mouse.y / stride);
+                    let cursorCol = Math.floor(mouse.x / stride);
+                    console.log(imageWidth, imageHeight);
+                    if (
+                        !checkTileBounds(
+                            cursorRow,
+                            cursorCol,
+                            imageWidth,
+                            imageHeight
+                        )
+                    ) {
+                        return;
+                    }
+                    setImageState(
+                        imageState.map((pixelRow, rowNum) =>
+                            rowNum !== cursorRow
+                                ? pixelRow
+                                : pixelRow.map((pixelCol, colNum) =>
+                                      colNum !== cursorCol
+                                          ? pixelCol
+                                          : selectedColor
+                                  )
+                        )
+                    );
+                };
+
+                handleMouseMove = (e) => {
+                    baseMouseMove(e);
+                    if (mouse.down) {
+                        placeColor();
+                    }
+                };
+                handleMouseDown = (e) => {
+                    baseMouseDown(e);
+                    placeColor();
+                };
+                handleMouseUp = (e) => {
+                    baseMouseUp(e);
+                };
+
+                addCoreListeners();
+                return () => {
+                    removeCoreListeners();
+                };
+            }
         }
-    }, [canvasRef.current, imageState, selectedColor]);
+    }, [canvasRef.current, imageState, selectedColor, selectedTool]);
 
     useEffect(() => {
         // continuously repaint canvas
@@ -234,7 +271,13 @@ function PixelCanvas({ imageState, setImageState, selectedColor }) {
 
             const animate = () => {
                 const ctx = canvas.getContext("2d");
-                paintCanvas(canvas, ctx, imageState, mouseRef.current);
+                paintCanvas(
+                    canvas,
+                    ctx,
+                    imageState,
+                    previewState,
+                    mouseRef.current
+                );
                 request = requestAnimationFrame(animate);
             };
             request = requestAnimationFrame(animate);
@@ -243,7 +286,7 @@ function PixelCanvas({ imageState, setImageState, selectedColor }) {
                 cancelAnimationFrame(request);
             };
         }
-    }, [imageState, canvasRef.current]);
+    }, [imageState, canvasRef.current, previewState]);
 
     function downloadPNG() {
         // create small canvas, draw all pixels
