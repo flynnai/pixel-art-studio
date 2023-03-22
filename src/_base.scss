@@ -5,3 +5,7 @@ $light-primary: white;
 $light-primary-darker: #f5f4f8;
 $light-secondary: #eae8f1;
 $light-secondary-darker: #cdcad5;
+
+@mixin slight-shadow {
+    box-shadow: 10px 8px 20px -5px #00000033;
+}

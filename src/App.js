@@ -91,24 +91,36 @@ function App() {
                 </Grid>
             </Grid>
             <Grid item xs={3}>
-                <Grid container direction="column">
-                    <Grid item xs={8}>
+                <Grid container direction="column" alignItems="center">
+                    <Grid item xs={6}>
                         asdf
                     </Grid>
-                    <Grid item xs={4}>
-                        <Grid container direction="row">
+                    <Grid item xs={6}>
+                        <Grid
+                            container
+                            direction="row"
+                            className={styles.palette}
+                        >
                             {palette.map((color, index) => (
                                 <Grid
                                     item
                                     xs={3}
                                     key={index}
-                                    className={styles.paletteItem}
-                                    style={{
-                                        backgroundColor: hexToColor(color),
-                                    }}
+                                    className={joinClasses(
+                                        styles.paletteItem,
+                                        color === selectedColor &&
+                                            styles.selected
+                                    )}
                                     onClick={() => setSelectedColor(color)}
                                 >
-                                    &nbsp;
+                                    <div
+                                        style={{
+                                            backgroundColor: hexToColor(color),
+                                        }}
+                                        className={styles.color}
+                                    >
+                                        &nbsp;
+                                    </div>
                                 </Grid>
                             ))}
                         </Grid>
