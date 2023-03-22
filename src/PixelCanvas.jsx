@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import styles from "./PixelCanvas.module.scss";
 import { checkTileBounds, hexToColor, invertHexColor } from "./util";
 
@@ -8,6 +8,9 @@ const PixelCanvas = React.memo(
         const canvasRef = useRef(null);
         const previewCanvasRef = useRef(null);
         const mouseRef = useRef({ x: 0, y: 0, down: false });
+
+        const imageWidth = imageState[0].length;
+        const imageHeight = imageState.length;
 
         // color and array of coord pairs
         const [previewState, setPreviewState] = useState({
@@ -47,21 +50,19 @@ const PixelCanvas = React.memo(
         };
 
         useEffect(() => {
-            const imageWidth = imageState[0].length;
-            const imageHeight = imageState.length;
             // capture mouse movements, store in ref to avoid rerender
             const mouse = mouseRef.current;
-            const canvas = canvasRef.current;
-            let stride = canvas.width / imageWidth;
+            const previewCanvas = previewCanvasRef.current;
+            let stride = previewCanvas.width / imageWidth;
 
-            if (canvas) {
+            if (previewCanvas) {
                 const baseMouseMove = (e) => {
-                    const bounding = canvas.getBoundingClientRect();
+                    const bounding = previewCanvas.getBoundingClientRect();
                     mouse.x = e.clientX - bounding.left;
                     mouse.y = e.clientY - bounding.top;
                     setPreviewState((curr) => {
-                        let cursorRow = Math.floor(mouse.x / stride);
-                        let cursorCol = Math.floor(mouse.y / stride);
+                        let cursorRow = Math.floor(mouse.y / stride);
+                        let cursorCol = Math.floor(mouse.x / stride);
                         if (
                             cursorRow === curr.cursorRow &&
                             cursorCol === curr.cursorCol
@@ -84,19 +85,25 @@ const PixelCanvas = React.memo(
 
                 const addCoreListeners = () => {
                     window.addEventListener("mousemove", handleMouseMove);
-                    canvas.addEventListener("mousedown", handleMouseDown);
+                    previewCanvas.addEventListener(
+                        "mousedown",
+                        handleMouseDown
+                    );
                     window.addEventListener("mouseup", handleMouseUp);
                 };
                 const removeCoreListeners = () => {
                     window.removeEventListener("mousemove", handleMouseMove);
-                    canvas.removeEventListener("mousedown", handleMouseDown);
+                    previewCanvas.removeEventListener(
+                        "mousedown",
+                        handleMouseDown
+                    );
                     window.removeEventListener("mouseup", handleMouseUp);
                 };
 
                 if (selectedTool.name === "line") {
                 } else if (selectedTool.name === "brush") {
                     const placeColor = () => {
-                        let stride = canvas.width / imageWidth;
+                        let stride = previewCanvas.width / imageWidth;
                         let cursorRow = Math.floor(mouse.y / stride);
                         let cursorCol = Math.floor(mouse.x / stride);
                         console.log("Trying to place a color.");
@@ -114,11 +121,6 @@ const PixelCanvas = React.memo(
                             maybeUpdateImageState([
                                 {
                                     row: cursorRow,
-                                    col: cursorCol,
-                                    color: selectedColor,
-                                },
-                                {
-                                    row: cursorRow + 1,
                                     col: cursorCol,
                                     color: selectedColor,
                                 },
@@ -146,106 +148,117 @@ const PixelCanvas = React.memo(
                     };
                 }
             }
-        }, [canvasRef.current, imageState, selectedColor, selectedTool]);
+        }, [imageState, selectedColor, selectedTool, imageWidth, imageHeight]);
 
-        const paintCanvas = (canvas, ctx, imageState) => {
-            console.log("We're painting the damn canvas.");
-            const imageHeight = imageState.length;
-            const imageWidth = imageState[0].length;
+        const paintCanvas = useCallback(
+            (canvas, ctx, imageState) => {
+                console.log("We're painting the damn canvas.");
 
-            // note: maybe Math.round() would be better here, for avoiding lines between shapes
-            const stride = canvas.width / imageWidth;
+                // note: maybe Math.round() would be better here, for avoiding lines between shapes
+                const stride = canvas.width / imageWidth;
 
-            // fill in transparent, alternating squares
-            let altScale = 0.5;
-            let altStride = stride * altScale;
-            ctx.fillStyle = "white";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            for (let row = 0; row < imageHeight / altScale; row++) {
-                for (let col = 0; col < imageWidth / altScale; col++) {
-                    if ((row + col) % 2) {
-                        ctx.fillStyle = "#ddd";
+                // fill in transparent, alternating squares
+                let altScale = 0.5;
+                let altStride = stride * altScale;
+                ctx.fillStyle = "white";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                for (let row = 0; row < imageHeight / altScale; row++) {
+                    for (let col = 0; col < imageWidth / altScale; col++) {
+                        if ((row + col) % 2) {
+                            ctx.fillStyle = "#ddd";
+                            ctx.fillRect(
+                                col * altStride,
+                                row * altStride,
+                                altStride,
+                                altStride
+                            );
+                        }
+                    }
+                }
+
+                // color in our image
+                for (let row = 0; row < imageHeight; row++) {
+                    for (let col = 0; col < imageWidth; col++) {
+                        ctx.fillStyle = hexToColor(imageState[row][col]);
                         ctx.fillRect(
-                            col * altStride,
-                            row * altStride,
-                            altStride,
-                            altStride
+                            col * stride,
+                            row * stride,
+                            stride,
+                            stride
                         );
                     }
                 }
-            }
-
-            // color in our image
-            for (let row = 0; row < imageHeight; row++) {
-                for (let col = 0; col < imageWidth; col++) {
-                    ctx.fillStyle = hexToColor(imageState[row][col]);
-                    ctx.fillRect(col * stride, row * stride, stride, stride);
-                }
-            }
-        };
+            },
+            [imageWidth, imageHeight]
+        );
 
         useEffect(() => {
             // repaint image canvas ONLY when needed
             const canvas = canvasRef.current;
             if (canvas) {
                 const ctx = canvas.getContext("2d");
-                paintCanvas(canvas, ctx, imageState, previewState);
+                paintCanvas(canvas, ctx, imageState);
             }
-        }, [canvasRef.current, imageState]);
+        }, [imageState, paintCanvas]);
 
-        const paintPreviewCanvas = (canvas, ctx, previewState, mouse) => {
-            console.log("We're painting the damn preview.");
-            const imageHeight = imageState.length;
-            const imageWidth = imageState[0].length;
+        const paintPreviewCanvas = useCallback(
+            (canvas, ctx, previewState, mouse) => {
+                console.log("We're painting the damn preview.");
 
-            // note: maybe Math.round() would be better here, for avoiding lines between shapes
-            const stride = canvas.width / imageWidth;
+                // note: maybe Math.round() would be better here, for avoiding lines between shapes
+                const stride = canvas.width / imageWidth;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // display previewed line or shape
-            if (previewState.coordPairs) {
-                for (const { row, col } of previewState.coordPairs) {
-                    ctx.fillStyle = hexToColor(previewState.color);
-                    ctx.fillRect(col * stride, row * stride, stride, stride);
+                // display previewed line or shape
+                if (previewState.coordPairs) {
+                    for (const { row, col } of previewState.coordPairs) {
+                        ctx.fillStyle = hexToColor(previewState.color);
+                        ctx.fillRect(
+                            col * stride,
+                            row * stride,
+                            stride,
+                            stride
+                        );
+                    }
                 }
-            }
 
-            // color in cursor
-            let cursorRow = Math.floor(mouse.y / stride);
-            let cursorCol = Math.floor(mouse.x / stride);
-            if (
-                checkTileBounds(cursorRow, cursorCol, imageWidth, imageHeight)
-            ) {
-                ctx.strokeStyle = hexToColor(
-                    invertHexColor(imageState[cursorRow][cursorCol])
+                // color in cursor
+                const { cursorRow, cursorCol } = previewState;
+                if (
+                    checkTileBounds(
+                        cursorRow,
+                        cursorCol,
+                        imageWidth,
+                        imageHeight
+                    )
+                ) {
+                    ctx.strokeStyle = hexToColor(
+                        invertHexColor(imageState[cursorRow][cursorCol])
+                    );
+                } else {
+                    ctx.strokeStyle = "black";
+                }
+
+                ctx.lineWidth = 2;
+                ctx.strokeRect(
+                    cursorCol * stride,
+                    cursorRow * stride,
+                    stride,
+                    stride
                 );
-            } else {
-                ctx.strokeStyle = "black";
-            }
-
-            ctx.lineWidth = 2;
-            ctx.strokeRect(
-                cursorCol * stride,
-                cursorRow * stride,
-                stride,
-                stride
-            );
-        };
+            },
+            [imageState, imageWidth, imageHeight]
+        );
 
         useEffect(() => {
             // repaint image canvas ONLY when needed
             const previewCanvas = previewCanvasRef.current;
             if (previewCanvas) {
                 const ctx = previewCanvas.getContext("2d");
-                paintPreviewCanvas(
-                    previewCanvas,
-                    ctx,
-                    previewState,
-                    mouseRef.current
-                );
+                paintPreviewCanvas(previewCanvas, ctx, previewState);
             }
-        }, [previewCanvasRef.current, previewState]);
+        }, [previewState, paintPreviewCanvas]);
 
         function downloadPNG() {
             // create small canvas, draw all pixels

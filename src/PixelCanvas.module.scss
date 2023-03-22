@@ -1,6 +1,8 @@
 .main {
     position: relative;
-    .previewCanvas {
+    #previewCanvas {
+        top: 0;
         position: absolute;
+        z-index: 1;
     }
 }
