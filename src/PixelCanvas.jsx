@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import styles from "./PixelCanvas.module.scss";
+import { runListeners } from "./toolbarListeners";
 import { checkTileBounds, hexToColor, invertHexColor } from "./util";
 
 // assumes `imageState` is a 2D, rectangular array of hex digits, at least size 1 in width and height
@@ -20,135 +21,31 @@ const PixelCanvas = React.memo(
             cursorCol: 0,
         });
 
-        // given array of {row, col, color}, update state if necessary
-        const maybeUpdateImageState = (updateList) => {
-            return (currImageState) => {
-                // check for changes
-                let somethingChanged = false;
-                for (const { row, col, color } of updateList) {
-                    if (currImageState[row][col] !== color) {
-                        somethingChanged = true;
-                        break;
-                    }
-                }
-                if (!somethingChanged) {
-                    return currImageState;
-                }
-
-                return currImageState.map((pixelRow, row) =>
-                    !updateList.some((update) => update.row === row)
-                        ? pixelRow
-                        : pixelRow.map((pixel, col) => {
-                              const find = updateList.find(
-                                  (update) =>
-                                      update.row === row && update.col === col
-                              );
-                              return find ? find.color : pixel;
-                          })
-                );
-            };
-        };
-
         useEffect(() => {
             // capture mouse movements, store in ref to avoid rerender
             const mouse = mouseRef.current;
             const previewCanvas = previewCanvasRef.current;
-            let stride = previewCanvas.width / imageWidth;
 
             if (previewCanvas) {
-                const baseMouseMove = (e) => {
-                    const bounding = previewCanvas.getBoundingClientRect();
-                    mouse.x = e.clientX - bounding.left;
-                    mouse.y = e.clientY - bounding.top;
-                    setPreviewState((curr) => {
-                        let cursorRow = Math.floor(mouse.y / stride);
-                        let cursorCol = Math.floor(mouse.x / stride);
-                        if (
-                            cursorRow === curr.cursorRow &&
-                            cursorCol === curr.cursorCol
-                        ) {
-                            // no change
-                            return curr;
-                        } else {
-                            return { ...curr, cursorRow, cursorCol };
-                        }
-                    });
-                };
-                const baseMouseDown = (e) => {
-                    mouse.down = true;
-                };
-                const baseMouseUp = () => {
-                    mouse.down = false;
-                };
-
-                let handleMouseMove, handleMouseDown, handleMouseUp;
-
-                const addCoreListeners = () => {
-                    window.addEventListener("mousemove", handleMouseMove);
-                    previewCanvas.addEventListener(
-                        "mousedown",
-                        handleMouseDown
-                    );
-                    window.addEventListener("mouseup", handleMouseUp);
-                };
-                const removeCoreListeners = () => {
-                    window.removeEventListener("mousemove", handleMouseMove);
-                    previewCanvas.removeEventListener(
-                        "mousedown",
-                        handleMouseDown
-                    );
-                    window.removeEventListener("mouseup", handleMouseUp);
-                };
-
-                if (selectedTool.name === "line") {
-                } else if (selectedTool.name === "brush") {
-                    const placeColor = () => {
-                        let stride = previewCanvas.width / imageWidth;
-                        let cursorRow = Math.floor(mouse.y / stride);
-                        let cursorCol = Math.floor(mouse.x / stride);
-                        console.log("Trying to place a color.");
-                        if (
-                            !checkTileBounds(
-                                cursorRow,
-                                cursorCol,
-                                imageWidth,
-                                imageHeight
-                            )
-                        ) {
-                            return;
-                        }
-                        setImageState(
-                            maybeUpdateImageState([
-                                {
-                                    row: cursorRow,
-                                    col: cursorCol,
-                                    color: selectedColor,
-                                },
-                            ])
-                        );
-                    };
-
-                    handleMouseMove = (e) => {
-                        baseMouseMove(e);
-                        if (mouse.down) {
-                            placeColor();
-                        }
-                    };
-                    handleMouseDown = (e) => {
-                        baseMouseDown(e);
-                        placeColor();
-                    };
-                    handleMouseUp = (e) => {
-                        baseMouseUp(e);
-                    };
-
-                    addCoreListeners();
-                    return () => {
-                        removeCoreListeners();
-                    };
-                }
+                return runListeners(
+                    previewCanvas,
+                    mouse,
+                    selectedColor,
+                    selectedTool,
+                    imageWidth,
+                    imageHeight,
+                    setImageState,
+                    setPreviewState
+                );
             }
-        }, [imageState, selectedColor, selectedTool, imageWidth, imageHeight]);
+        }, [
+            imageState,
+            selectedColor,
+            selectedTool,
+            imageWidth,
+            imageHeight,
+            setImageState,
+        ]);
 
         const paintCanvas = useCallback(
             (canvas, ctx, imageState) => {
