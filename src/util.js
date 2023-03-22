@@ -25,10 +25,16 @@ export const checkTileBounds = (row, col, width, height) => {
 };
 
 export // returns array of {row, col} pairs corresponding to line
-const drawLine = (imageState, prevX, prevY, mouseX, mouseY, stride) => {
-    const imageWidth = imageState[0].length;
-    const imageHeight = imageState.length;
-
+const drawLine = (
+    imageWidth,
+    imageHeight,
+    prevX,
+    prevY,
+    mouseX,
+    mouseY,
+    stride,
+    color
+) => {
     // normalize prev coords, mouse coords to one tile
     prevX = (Math.floor(prevX / stride) + 0.5) * stride;
     prevY = (Math.floor(prevY / stride) + 0.5) * stride;
@@ -48,6 +54,7 @@ const drawLine = (imageState, prevX, prevY, mouseX, mouseY, stride) => {
     let curr = {
         row: start.row,
         col: start.col,
+        color,
     };
 
     const theta = Math.atan2(mouseY - prevY, mouseX - prevX);
@@ -93,12 +100,3 @@ const drawLine = (imageState, prevX, prevY, mouseX, mouseY, stride) => {
 
     return outputLine;
 };
-
-// const lineCoords = drawLine(
-//     imageState,
-//     canvas.width / 2,
-//     canvas.height / 2,
-//     mouse.x,
-//     mouse.y,
-//     stride
-// );

@@ -13,10 +13,9 @@ const PixelCanvas = React.memo(
         const imageWidth = imageState[0].length;
         const imageHeight = imageState.length;
 
-        // color and array of coord pairs
+        // color and array of {row, col, color} triplets
         const [previewState, setPreviewState] = useState({
-            color: null,
-            coordPairs: null,
+            previewPixels: null,
             cursorRow: 0,
             cursorCol: 0,
         });
@@ -99,7 +98,7 @@ const PixelCanvas = React.memo(
         }, [imageState, paintCanvas]);
 
         const paintPreviewCanvas = useCallback(
-            (canvas, ctx, previewState, mouse) => {
+            (canvas, ctx, previewState) => {
                 console.log("We're painting the damn preview.");
 
                 // note: maybe Math.round() would be better here, for avoiding lines between shapes
@@ -108,9 +107,13 @@ const PixelCanvas = React.memo(
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 // display previewed line or shape
-                if (previewState.coordPairs) {
-                    for (const { row, col } of previewState.coordPairs) {
-                        ctx.fillStyle = hexToColor(previewState.color);
+                if (previewState.previewPixels) {
+                    for (const {
+                        row,
+                        col,
+                        color,
+                    } of previewState.previewPixels) {
+                        ctx.fillStyle = hexToColor(color);
                         ctx.fillRect(
                             col * stride,
                             row * stride,

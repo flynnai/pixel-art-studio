@@ -1,4 +1,4 @@
-import { checkTileBounds } from "./util";
+import { checkTileBounds, drawLine } from "./util";
 
 // given array of {row, col, color}, update state if necessary
 const maybeUpdateImageState = (updateList) => {
@@ -74,21 +74,62 @@ export const runListeners = (
         previewCanvas.removeEventListener("mousedown", handleMouseDown);
         window.removeEventListener("mouseup", handleMouseUp);
     };
-
     if (selectedTool.name === "line") {
-        // handleMouseMove = (e) => {
-        //     baseMouseMove(e);
-        //     if (mouse.down) {
-        //         placeColor();
-        //     }
-        // };
-        // handleMouseDown = (e) => {
-        //     baseMouseDown(e);
-        //     placeColor();
-        // };
-        // handleMouseUp = (e) => {
-        //     baseMouseUp(e);
-        // };
+        let lineStart = null,
+            linePixels = null;
+        handleMouseMove = (e) => {
+            console.log("Mouse linestart", lineStart);
+            baseMouseMove(e);
+            if (lineStart !== null) {
+                // update previewed line
+                linePixels = drawLine(
+                    imageWidth,
+                    imageHeight,
+                    lineStart.x,
+                    lineStart.y,
+                    mouse.x,
+                    mouse.y,
+                    stride,
+                    selectedColor
+                );
+
+                setPreviewState((curr) => ({
+                    ...curr,
+                    previewPixels: linePixels,
+                }));
+            }
+        };
+        handleMouseDown = (e) => {
+            baseMouseDown(e);
+            if (lineStart === null) {
+                lineStart = { x: mouse.x, y: mouse.y };
+                linePixels = drawLine(
+                    imageWidth,
+                    imageHeight,
+                    lineStart.x,
+                    lineStart.y,
+                    mouse.x,
+                    mouse.y,
+                    stride,
+                    selectedColor
+                );
+            }
+        };
+        handleMouseUp = (e) => {
+            baseMouseUp(e);
+            if (lineStart !== null) {
+                // place the line
+                lineStart = null;
+                let previewPixels = null;
+                setImageState(maybeUpdateImageState(linePixels));
+                setPreviewState((curr) => ({ ...curr, previewPixels: [] }));
+            }
+        };
+
+        addCoreListeners();
+        return () => {
+            removeCoreListeners();
+        };
     } else if (selectedTool.name === "brush") {
         const placeColor = () => {
             let stride = previewCanvas.width / imageWidth;
