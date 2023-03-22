@@ -85,11 +85,10 @@ export const runListeners = (
                 linePixels = drawLine(
                     imageWidth,
                     imageHeight,
-                    lineStart.x,
-                    lineStart.y,
-                    mouse.x,
-                    mouse.y,
-                    stride,
+                    Math.floor(lineStart.y / stride),
+                    Math.floor(lineStart.x / stride),
+                    Math.floor(mouse.y / stride),
+                    Math.floor(mouse.x / stride),
                     selectedColor
                 );
 
@@ -106,11 +105,10 @@ export const runListeners = (
                 linePixels = drawLine(
                     imageWidth,
                     imageHeight,
-                    lineStart.x,
-                    lineStart.y,
-                    mouse.x,
-                    mouse.y,
-                    stride,
+                    Math.floor(lineStart.y / stride),
+                    Math.floor(lineStart.x / stride),
+                    Math.floor(mouse.y / stride),
+                    Math.floor(mouse.x / stride),
                     selectedColor
                 );
             }
@@ -120,7 +118,6 @@ export const runListeners = (
             if (lineStart !== null) {
                 // place the line
                 lineStart = null;
-                let previewPixels = null;
                 setImageState(maybeUpdateImageState(linePixels));
                 setPreviewState((curr) => ({ ...curr, previewPixels: [] }));
             }

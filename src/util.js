@@ -28,36 +28,20 @@ export // returns array of {row, col} pairs corresponding to line
 const drawLine = (
     imageWidth,
     imageHeight,
-    prevX,
-    prevY,
-    mouseX,
-    mouseY,
-    stride,
+    prevRow,
+    prevCol,
+    mouseRow,
+    mouseCol,
     color
 ) => {
-    // normalize prev coords, mouse coords to one tile
-    prevX = (Math.floor(prevX / stride) + 0.5) * stride;
-    prevY = (Math.floor(prevY / stride) + 0.5) * stride;
-
-    mouseX = (Math.floor(mouseX / stride) + 0.5) * stride;
-    mouseY = (Math.floor(mouseY / stride) + 0.5) * stride;
-
-    // set up start, end coords
-    let end = {
-        row: Math.floor(mouseY / stride),
-        col: Math.floor(mouseX / stride),
-    };
-    let start = {
-        row: Math.floor(prevY / stride),
-        col: Math.floor(prevX / stride),
-    };
     let curr = {
-        row: start.row,
-        col: start.col,
+        row: prevRow,
+        col: prevCol,
         color,
     };
 
-    const theta = Math.atan2(mouseY - prevY, mouseX - prevX);
+    // find slopes, and which 2 octants we're in
+    const theta = Math.atan2(mouseRow - prevRow, mouseCol - prevCol);
     let direction, increment, slope;
     if (
         Math.abs(theta) <= Math.PI / 4 ||
@@ -78,17 +62,17 @@ const drawLine = (
     while (true) {
         outputLine.push({ ...curr });
 
-        if (curr.row === end.row && curr.col === end.col) {
+        if (curr.row === mouseRow && curr.col === mouseCol) {
             break;
         }
 
         if (direction === "horizontal") {
-            curr.row = Math.floor(prevY / stride + i * slope);
-            curr.col = start.col + i;
+            curr.row = Math.floor(prevRow + 0.5 + i * slope);
+            curr.col = prevCol + i;
         } else {
             // direction is `vertical`
-            curr.row = start.row + i;
-            curr.col = Math.floor(prevX / stride - i * slope);
+            curr.row = prevRow + i;
+            curr.col = Math.floor(prevCol + 0.5 - i * slope);
         }
 
         if (!checkTileBounds(curr.row, curr.col, imageWidth, imageHeight)) {
