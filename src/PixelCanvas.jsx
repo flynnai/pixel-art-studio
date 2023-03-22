@@ -27,10 +27,10 @@ const checkTileBounds = (row, col, width, height) => {
     return !(col < 0 || col >= width || row < 0 || row >= height);
 };
 
-const drawLine = (currImageState, prevX, prevY, mouseX, mouseY, stride) => {
-    const imageStateCopy = currImageState.map((row) => [...row]);
-    const imageWidth = imageStateCopy[0].length;
-    const imageHeight = imageStateCopy.length;
+// returns array of {row, col} pairs corresponding to line
+const drawLine = (imageState, prevX, prevY, mouseX, mouseY, stride) => {
+    const imageWidth = imageState[0].length;
+    const imageHeight = imageState.length;
 
     // normalize prev coords, mouse coords to one tile
     prevX = (Math.floor(prevX / stride) + 0.5) * stride;
@@ -70,8 +70,9 @@ const drawLine = (currImageState, prevX, prevY, mouseX, mouseY, stride) => {
     }
 
     let i = 0;
+    const outputLine = [];
     while (true) {
-        imageStateCopy[curr.row][curr.col] = 0x000000ff;
+        outputLine.push({ ...curr });
 
         if (curr.row === end.row && curr.col === end.col) {
             break;
@@ -93,7 +94,7 @@ const drawLine = (currImageState, prevX, prevY, mouseX, mouseY, stride) => {
         i += increment;
     }
 
-    return imageStateCopy;
+    return outputLine;
 };
 
 const paintCanvas = (canvas, ctx, imageState, mouse) => {
@@ -144,7 +145,7 @@ const paintCanvas = (canvas, ctx, imageState, mouse) => {
     ctx.lineWidth = 2;
     ctx.strokeRect(cursorCol * stride, cursorRow * stride, stride, stride);
 
-    const newImageState = drawLine(
+    const lineCoords = drawLine(
         imageState,
         canvas.width / 2,
         canvas.height / 2,
@@ -153,12 +154,9 @@ const paintCanvas = (canvas, ctx, imageState, mouse) => {
         stride
     );
 
-    // color in our line
-    for (let row = 0; row < imageHeight; row++) {
-        for (let col = 0; col < imageWidth; col++) {
-            ctx.fillStyle = hexToColor(newImageState[row][col]);
-            ctx.fillRect(col * stride, row * stride, stride, stride);
-        }
+    for (const { row, col } of lineCoords) {
+        ctx.fillStyle = hexToColor(0x00ff00ff);
+        ctx.fillRect(col * stride, row * stride, stride, stride);
     }
 };
 
