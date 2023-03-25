@@ -105,3 +105,39 @@ export const downloadPNG = (imageState, filename) => {
     a.download = filename;
     a.click();
 };
+
+export const addUndoAction = (undoList, undoAction, redoAction) => {
+    const { index, functorStack } = undoList;
+    if (index !== functorStack.length) {
+        // remove remaining functors (can no longer redo)
+        functorStack.splice(index);
+    }
+    functorStack.push({ undo: undoAction, redo: redoAction });
+    undoList.index++;
+};
+
+export const canUndo = (undoList) => {
+    return undoList.index > 0;
+};
+
+export const canRedo = (undoList) => {
+    return undoList.index < undoList.functorStack.length;
+};
+
+// returns whether undo was successful (history ran out or not)
+export const undo = (undoList) => {
+    if (!canUndo(undoList)) {
+        return false;
+    }
+    undoList.functorStack[--undoList.index].undo();
+    return true;
+};
+
+// returns whether redo was successful (not enough items or not)
+export const redo = (undoList) => {
+    if (!canRedo(undoList)) {
+        return false;
+    }
+    undoList.functorStack[undoList.index++].redo();
+    return true;
+};

@@ -1,9 +1,18 @@
 import { Brush, Download, Redo, ShowChart, Undo } from "@mui/icons-material";
 import { Grid, TextField } from "@mui/material";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import styles from "./App.module.scss";
 import PixelCanvas from "./PixelCanvas";
-import { downloadPNG, hexToColor, joinClasses } from "./util";
+import {
+    addUndoAction,
+    canRedo,
+    canUndo,
+    downloadPNG,
+    hexToColor,
+    joinClasses,
+    redo,
+    undo,
+} from "./util";
 
 const IMAGE_WIDTH = 16;
 const IMAGE_HEIGHT = 16;
@@ -18,42 +27,6 @@ const tools = {
         icon: <Brush fontSize="large" />,
     },
     line: { icon: <ShowChart fontSize="large" /> },
-};
-
-const addUndoAction = (undoList, undoAction, redoAction) => {
-    const { index, functorStack } = undoList;
-    if (index !== functorStack.length) {
-        // remove remaining functors (can no longer redo)
-        functorStack.splice(index);
-    }
-    functorStack.push({ undo: undoAction, redo: redoAction });
-    undoList.index++;
-};
-
-const canUndo = (undoList) => {
-    return undoList.index > 0;
-};
-
-const canRedo = (undoList) => {
-    return undoList.index < undoList.functorStack.length;
-};
-
-// returns whether undo was successful (history ran out or not)
-const undo = (undoList) => {
-    if (!canUndo(undoList)) {
-        return false;
-    }
-    undoList.functorStack[--undoList.index].undo();
-    return true;
-};
-
-// returns whether redo was successful (not enough items or not)
-const redo = (undoList) => {
-    if (!canRedo(undoList)) {
-        return false;
-    }
-    undoList.functorStack[undoList.index++].redo();
-    return true;
 };
 
 function App() {
@@ -131,6 +104,24 @@ function App() {
             console.log("UPDATING", update);
             return update;
         });
+    }, []);
+
+    useEffect(() => {
+        const keyDownHandler = (e) => {
+            if (e.key === "z" && e.metaKey) {
+                if (!e.shiftKey) {
+                    // undo
+                    undo(undoListRef.current);
+                } else {
+                    // redo
+                    redo(undoListRef.current);
+                }
+            }
+        };
+        window.addEventListener("keydown", keyDownHandler);
+        return () => {
+            window.removeEventListener("keydown", keyDownHandler);
+        };
     }, []);
 
     console.log("undo stack", undoListRef.current);
