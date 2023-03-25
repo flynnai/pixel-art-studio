@@ -5,33 +5,43 @@
 
     .leftSide {
         .toolbar {
-            background-color: base.$light-primary;
-            padding: 0.5rem;
-            border-radius: 15px;
-            @include base.slight-shadow;
+            .toolbarGroup {
+                background-color: base.$light-primary;
+                padding: 0.5rem;
+                border-radius: 15px;
+                margin-bottom: 15px;
+                @include base.slight-shadow;
 
-            .tool {
-                min-width: 4rem;
-                aspect-ratio: 1/1;
-                padding: 0.2rem;
+                .tool {
+                    min-width: 4rem;
+                    aspect-ratio: 1/1;
+                    padding: 0.2rem;
 
-                .clickable {
-                    background-color: transparent;
-                    border-radius: 15px;
+                    .clickable {
+                        background-color: transparent;
+                        border-radius: 15px;
 
-                    transition: background-color 0.3s;
-                    cursor: pointer;
+                        transition: background-color 0.3s, color 0.3s;
 
-                    &:hover {
-                        background-color: base.$light-primary-darker;
-                    }
+                        &:not(.disabled) {
+                            cursor: pointer;
 
-                    &.selected {
-                        background-color: base.$light-secondary;
-                    }
+                            &:hover {
+                                background-color: base.$light-primary-darker;
+                            }
 
-                    &:active {
-                        background-color: base.$light-secondary-darker;
+                            &.selected {
+                                background-color: base.$light-secondary;
+                            }
+
+                            &:active {
+                                background-color: base.$light-secondary-darker;
+                            }
+                        }
+
+                        &.disabled {
+                            color: #ccc;
+                        }
                     }
                 }
             }

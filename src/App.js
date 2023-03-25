@@ -1,4 +1,4 @@
-import { Brush, Download, ShowChart } from "@mui/icons-material";
+import { Brush, Download, Redo, ShowChart, Undo } from "@mui/icons-material";
 import { Grid, TextField } from "@mui/material";
 import React, { useRef, useState } from "react";
 import styles from "./App.module.scss";
@@ -30,9 +30,17 @@ const addUndoAction = (undoList, undoAction, redoAction) => {
     undoList.index++;
 };
 
+const canUndo = (undoList) => {
+    return undoList.index > 0;
+};
+
+const canRedo = (undoList) => {
+    return undoList.index < undoList.functorStack.length;
+};
+
 // returns whether undo was successful (history ran out or not)
 const undo = (undoList) => {
-    if (undoList.index <= 0) {
+    if (!canUndo(undoList)) {
         return false;
     }
     undoList.functorStack[--undoList.index].undo();
@@ -41,7 +49,7 @@ const undo = (undoList) => {
 
 // returns whether redo was successful (not enough items or not)
 const redo = (undoList) => {
-    if (undoList.index >= undoList.functorStack.length) {
+    if (!canRedo(undoList)) {
         return false;
     }
     undoList.functorStack[undoList.index++].redo();
@@ -63,6 +71,7 @@ function App() {
     });
     const [downloadFilename, setDownloadFilename] = useState("your-creation");
 
+    // ok to have this as a ref, since whenever we update it, we update state
     const undoListRef = useRef({
         index: 0, // 1 past the last undo-able action
         functorStack: [],
@@ -70,14 +79,7 @@ function App() {
 
     const updatePixels = React.useCallback((updateList) => {
         setImageState((currImageState) => {
-            // check for changes
-            // let somethingChanged = false;
-            // for (const { row, col, color } of updateList) {
-            //     if (currImageState[row][col] !== color) {
-            //         somethingChanged = true;
-            //         break;
-            //     }
-            // }
+            // find changed pixels
             let prevPixels = [];
             for (const { row, col, color } of updateList) {
                 if (currImageState[row][col] !== color) {
@@ -93,6 +95,7 @@ function App() {
                 return currImageState;
             }
 
+            // helper function
             const getModifiedImageState = (_updateList, currImageState) => {
                 return currImageState.map((pixelRow, row) =>
                     !_updateList.some((update) => update.row === row)
@@ -107,6 +110,7 @@ function App() {
                 );
             };
 
+            // create undo and redo actions for this change
             const undoAction = () => {
                 console.log("Undoing with these pixels:", prevPixels);
                 setImageState((curr) =>
@@ -141,9 +145,66 @@ function App() {
             alignItems="center"
         >
             <Grid item xs={3} className={styles.leftSide}>
-                <Grid container justifyContent="flex-end">
+                <Grid
+                    container
+                    direction="column"
+                    wrap="nowrap"
+                    alignItems="flex-end"
+                >
                     <Grid item xs="auto" className={styles.toolbar}>
-                        <Grid container direction="row">
+                        <Grid
+                            container
+                            direction="row"
+                            className={styles.toolbarGroup}
+                        >
+                            <Grid
+                                item
+                                className={styles.tool}
+                                onClick={() => undo(undoListRef.current)}
+                            >
+                                <Grid
+                                    container
+                                    justifyContent="center"
+                                    alignItems="center"
+                                    style={{ height: "100%" }}
+                                    className={joinClasses(
+                                        styles.clickable,
+                                        !canUndo(undoListRef.current) &&
+                                            styles.disabled
+                                    )}
+                                >
+                                    <Grid item>
+                                        <Undo />
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                            <Grid
+                                item
+                                className={styles.tool}
+                                onClick={() => redo(undoListRef.current)}
+                            >
+                                <Grid
+                                    container
+                                    justifyContent="center"
+                                    alignItems="center"
+                                    style={{ height: "100%" }}
+                                    className={joinClasses(
+                                        styles.clickable,
+                                        !canRedo(undoListRef.current) &&
+                                            styles.disabled
+                                    )}
+                                >
+                                    <Grid item>
+                                        <Redo />
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                        <Grid
+                            container
+                            direction="row"
+                            className={styles.toolbarGroup}
+                        >
                             {Object.entries(tools).map(([key, value]) => (
                                 <Grid
                                     item
@@ -172,12 +233,6 @@ function App() {
                                 </Grid>
                             ))}
                         </Grid>
-                        <button onClick={() => undo(undoListRef.current)}>
-                            undo
-                        </button>
-                        <button onClick={() => redo(undoListRef.current)}>
-                            redo
-                        </button>
                     </Grid>
                 </Grid>
             </Grid>
