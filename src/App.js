@@ -1,6 +1,6 @@
 import { Brush, Download, ShowChart } from "@mui/icons-material";
 import { Grid, TextField } from "@mui/material";
-import { useState } from "react";
+import React, { useRef, useState } from "react";
 import styles from "./App.module.scss";
 import PixelCanvas from "./PixelCanvas";
 import { downloadPNG, hexToColor, joinClasses } from "./util";
@@ -20,6 +20,34 @@ const tools = {
     line: { icon: <ShowChart fontSize="large" /> },
 };
 
+const addUndoAction = (undoList, undoAction, redoAction) => {
+    const { index, functorStack } = undoList;
+    if (index !== functorStack.length) {
+        // remove remaining functors (can no longer redo)
+        functorStack.splice(index);
+    }
+    functorStack.push({ undo: undoAction, redo: redoAction });
+    undoList.index++;
+};
+
+// returns whether undo was successful (history ran out or not)
+const undo = (undoList) => {
+    if (undoList.index <= 0) {
+        return false;
+    }
+    undoList.functorStack[--undoList.index].undo();
+    return true;
+};
+
+// returns whether redo was successful (not enough items or not)
+const redo = (undoList) => {
+    if (undoList.index >= undoList.functorStack.length) {
+        return false;
+    }
+    undoList.functorStack[undoList.index++].redo();
+    return true;
+};
+
 function App() {
     const [imageState, setImageState] = useState(
         new Array(IMAGE_HEIGHT)
@@ -34,6 +62,74 @@ function App() {
         size: 1,
     });
     const [downloadFilename, setDownloadFilename] = useState("your-creation");
+
+    const undoListRef = useRef({
+        index: 0, // 1 past the last undo-able action
+        functorStack: [],
+    });
+
+    const updatePixels = React.useCallback((updateList) => {
+        setImageState((currImageState) => {
+            // check for changes
+            // let somethingChanged = false;
+            // for (const { row, col, color } of updateList) {
+            //     if (currImageState[row][col] !== color) {
+            //         somethingChanged = true;
+            //         break;
+            //     }
+            // }
+            let prevPixels = [];
+            for (const { row, col, color } of updateList) {
+                if (currImageState[row][col] !== color) {
+                    prevPixels.push({
+                        row,
+                        col,
+                        color: currImageState[row][col],
+                    });
+                }
+            }
+            if (!prevPixels.length) {
+                // no change, return original value to avoid rerender
+                return currImageState;
+            }
+
+            const getModifiedImageState = (_updateList, currImageState) => {
+                return currImageState.map((pixelRow, row) =>
+                    !_updateList.some((update) => update.row === row)
+                        ? pixelRow
+                        : pixelRow.map((pixel, col) => {
+                              const find = _updateList.find(
+                                  (update) =>
+                                      update.row === row && update.col === col
+                              );
+                              return find ? find.color : pixel;
+                          })
+                );
+            };
+
+            const undoAction = () => {
+                console.log("Undoing with these pixels:", prevPixels);
+                setImageState((curr) =>
+                    getModifiedImageState(prevPixels, curr)
+                );
+            };
+            const redoAction = () => {
+                console.log("Redoing with these pixels:", updateList);
+                setImageState((curr) =>
+                    getModifiedImageState(updateList, curr)
+                );
+            };
+
+            const undoList = undoListRef.current;
+            addUndoAction(undoList, undoAction, redoAction);
+
+            const update = getModifiedImageState(updateList, currImageState);
+            console.log("UPDATING", update);
+            return update;
+        });
+    }, []);
+
+    console.log("undo stack", undoListRef.current);
 
     return (
         <Grid
@@ -76,6 +172,12 @@ function App() {
                                 </Grid>
                             ))}
                         </Grid>
+                        <button onClick={() => undo(undoListRef.current)}>
+                            undo
+                        </button>
+                        <button onClick={() => redo(undoListRef.current)}>
+                            redo
+                        </button>
                     </Grid>
                 </Grid>
             </Grid>
@@ -84,7 +186,7 @@ function App() {
                     <Grid item xs="auto">
                         <PixelCanvas
                             imageState={imageState}
-                            setImageState={setImageState}
+                            updatePixels={updatePixels}
                             selectedColor={palette[selectedColorIndex]}
                             selectedTool={selectedTool}
                         />

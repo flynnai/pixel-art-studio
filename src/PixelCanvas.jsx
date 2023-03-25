@@ -5,7 +5,7 @@ import { checkTileBounds, hexToColor, invertHexColor } from "./util";
 
 // assumes `imageState` is a 2D, rectangular array of hex digits, at least size 1 in width and height
 const PixelCanvas = React.memo(
-    ({ imageState, setImageState, selectedColor, selectedTool }) => {
+    ({ imageState, updatePixels, selectedColor, selectedTool }) => {
         const canvasRef = useRef(null);
         const previewCanvasRef = useRef(null);
         const mouseRef = useRef({ x: 0, y: 0, down: false });
@@ -33,7 +33,7 @@ const PixelCanvas = React.memo(
                     selectedTool,
                     imageWidth,
                     imageHeight,
-                    setImageState,
+                    updatePixels,
                     setPreviewState
                 );
             }
@@ -43,7 +43,7 @@ const PixelCanvas = React.memo(
             selectedTool,
             imageWidth,
             imageHeight,
-            setImageState,
+            updatePixels,
         ]);
 
         const paintCanvas = useCallback(
